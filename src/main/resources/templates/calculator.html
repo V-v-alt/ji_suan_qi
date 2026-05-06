@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4a1942 0%, #1e1b4b 50%, #312e81 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .calculator {
+            background: #1e1b4b;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(139, 92, 246, 0.3);
+            padding: 20px;
+            max-width: 320px;
+            width: 100%;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .login-status {
+            color: #a78bfa;
+            font-size: 12px;
+        }
+        .login-status a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+        .login-status a:hover {
+            text-decoration: underline;
+        }
+        .display {
+            background: #312e81;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            text-align: right;
+        }
+        .display .formula {
+            color: #a78bfa;
+            font-size: 14px;
+            min-height: 20px;
+        }
+        .display .result {
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+            min-height: 45px;
+        }
+        .error-message {
+            background: #dc2626;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .btn {
+            padding: 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-number {
+            background: #4c1d95;
+            color: white;
+        }
+        .btn-number:hover {
+            background: #5b21b6;
+        }
+        .btn-number:active {
+            transform: scale(0.95);
+        }
+        .btn-operator {
+            background: #8b5cf6;
+            color: white;
+        }
+        .btn-operator:hover {
+            background: #a78bfa;
+        }
+        .btn-operator:active {
+            transform: scale(0.95);
+        }
+        .btn-operator-locked {
+            background: #4338ca;
+            color: #9333ea;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .btn-function {
+            background: #6366f1;
+            color: white;
+        }
+        .btn-function:hover {
+            background: #818cf8;
+        }
+        .btn-function:active {
+            transform: scale(0.95);
+        }
+        .btn-equals {
+            background: #a855f7;
+            color: white;
+            grid-column: span 2;
+        }
+        .btn-equals:hover {
+            background: #c084fc;
+        }
+        .btn-equals:active {
+            transform: scale(0.95);
+        }
+        .locked-hint {
+            color: #a78bfa;
+            font-size: 11px;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="header">
+            <div class="login-status">
+                <span th:if="${loggedIn}">
+                    欢迎, <span th:text="${username}"></span> | <a href="/logout">退出</a>
+                </span>
+                <span th:unless="${loggedIn}">
+                    <a href="/login">登录</a> | <a href="/register">注册</a>
+                </span>
+            </div>
+        </div>
+        
+        <div th:if="${error}" class="error-message" th:text="${errorMessage}"></div>
+        
+        <form id="calcForm" action="/calculate" method="post">
+            <input type="hidden" id="num1" name="num1" value="0">
+            <input type="hidden" id="num2" name="num2" value="0">
+            <input type="hidden" id="operator" name="operator" value="+">
+            
+            <div class="display">
+                <div id="formula" class="formula"></div>
+                <div id="result" class="result" th:text="${result != null ? result : '0'}"></div>
+            </div>
+            
+            <div class="buttons">
+                <button type="button" class="btn btn-function" onclick="clearDisplay()">C</button>
+                <button type="button" class="btn btn-function" onclick="deleteChar()">DEL</button>
+                <button type="button" class="btn btn-function" onclick="toggleSign()">+/-</button>
+                <button type="button" class="btn btn-operator" th:classappend="${!loggedIn ? 'btn-operator-locked' : ''}" 
+                        onclick="setOperator('/')" th:disabled="${!loggedIn}">÷</button>
+                
+                <button type="button" class="btn btn-number" onclick="appendNumber('7')">7</button>
+                <button type="button" class="btn btn-number" onclick="appendNumber('8')">8</button>
+                <button type="button" class="btn btn-number" onclick="appendNumber('9')">9</button>
+                <button type="button" class="btn btn-operator" th:classappend="${!loggedIn ? 'btn-operator-locked' : ''}" 
+                        onclick="setOperator('*')" th:disabled="${!loggedIn}">×</button>
+                
+                <button type="button" class="btn btn-number" onclick="appendNumber('4')">4</button>
+                <button type="button" class="btn btn-number" onclick="appendNumber('5')">5</button>
+                <button type="button" class="btn btn-number" onclick="appendNumber('6')">6</button>
+                <button type="button" class="btn btn-operator" onclick="setOperator('-')">-</button>
+                
+                <button type="button" class="btn btn-number" onclick="appendNumber('1')">1</button>
+                <button type="button" class="btn btn-number" onclick="appendNumber('2')">2</button>
+                <button type="button" class="btn btn-number" onclick="appendNumber('3')">3</button>
+                <button type="button" class="btn btn-operator" onclick="setOperator('+')">+</button>
+                
+                <button type="button" class="btn btn-number" onclick="appendNumber('0')">0</button>
+                <button type="button" class="btn btn-number" onclick="appendNumber('.')">.</button>
+                <button type="submit" class="btn btn-equals">=</button>
+            </div>
+            
+            <div class="locked-hint" th:if="${!loggedIn}">乘除运算需要登录后使用</div>
+        </form>
+    </div>
+    
+    <script>
+        let currentNumber = '';
+        let previousNumber = '';
+        let operator = '+';
+        let shouldReset = false;
+        
+        function appendNumber(num) {
+            if (shouldReset) {
+                currentNumber = '';
+                shouldReset = false;
+            }
+            if (num === '.' && currentNumber.includes('.')) return;
+            if (currentNumber.length >= 5) return;
+            currentNumber += num;
+            updateDisplay();
+        }
+        
+        function setOperator(op) {
+            const isLoggedIn = [[${loggedIn}]];
+            if (!isLoggedIn && (op === '*' || op === '/')) {
+                alert('乘除运算需要先登录！');
+                return;
+            }
+            if (currentNumber === '') return;
+            previousNumber = currentNumber;
+            currentNumber = '';
+            operator = op;
+            shouldReset = false;
+            updateFormula();
+        }
+        
+        function updateFormula() {
+            const opSymbol = operator === '*' ? '×' : operator === '/' ? '÷' : operator;
+            document.getElementById('formula').textContent = previousNumber + ' ' + opSymbol;
+        }
+        
+        function clearDisplay() {
+            currentNumber = '';
+            previousNumber = '';
+            operator = '+';
+            shouldReset = false;
+            document.getElementById('result').textContent = '0';
+            document.getElementById('formula').textContent = '';
+            document.getElementById('num1').value = '0';
+            document.getElementById('num2').value = '0';
+            document.getElementById('operator').value = '+';
+        }
+        
+        function deleteChar() {
+            currentNumber = currentNumber.slice(0, -1);
+            if (currentNumber === '') {
+                document.getElementById('result').textContent = '0';
+            } else {
+                document.getElementById('result').textContent = currentNumber;
+            }
+        }
+        
+        function toggleSign() {
+            if (currentNumber === '') return;
+            if (currentNumber.startsWith('-')) {
+                currentNumber = currentNumber.slice(1);
+            } else {
+                currentNumber = '-' + currentNumber;
+            }
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            document.getElementById('result').textContent = currentNumber || '0';
+        }
+        
+        document.getElementById('calcForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (previousNumber === '' || currentNumber === '') return;
+            
+            document.getElementById('num1').value = previousNumber;
+            document.getElementById('num2').value = currentNumber;
+            document.getElementById('operator').value = operator;
+            
+            this.submit();
+        });
+    </script>
+</body>
+</html>
